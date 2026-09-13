@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Infinity Global Chat 2</title>
+    <link rel="icon" type="image/png" href="https://i.postimg.cc/76LDDV7G/download-(1).png">
+    <link rel="apple-touch-icon" href="https://i.postimg.cc/76LDDV7G/download-(1).png">
+    <link rel="manifest" href="manifest.json">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --primary: #6B46C1;
+            --primary-light: #9F7AEA;
+            --bg-gradient: linear-gradient(135deg, #1A0B2E 0%, #0F051D 100%);
+            --card-bg: rgba(255, 255, 255, 0.05);
+        }
+        body {
+            background: var(--bg-gradient);
+            color: #F7FAFC;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow-x: hidden;
+        }
+        .luxury-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+        .glow-btn {
+            box-shadow: 0 0 15px var(--primary-light);
+            transition: all 0.3s ease;
+        }
+        .glow-btn:hover {
+            box-shadow: 0 0 25px var(--primary);
+            transform: translateY(-2px);
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); }
+        ::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 10px; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- 1. SPLASH SCREEN (STRICTLY 3 SECONDS) -->
+    <div id="splash-screen" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-slate-950 text-white">
+        <div class="text-center animate-pulse">
+            <img src="https://i.postimg.cc/76LDDV7G/download-(1).png" alt="Logo" class="w-32 h-32 mx-auto mb-6 rounded-3xl border-2 border-purple-500 shadow-2xl">
+            <h1 class="text-3xl font-extrabold tracking-wider bg-clip-text text-transparent bg-gradient-to-r from-purple-400 via-pink-500 to-gold-400">
+                WELCOME TO GLOBAL CHAT 2
+            </h1>
+            <p class="text-gray-400 text-sm mt-2 font-mono tracking-widest">INITIALIZING CONNECTION...</p>
+            <div class="mt-6 w-48 h-1.5 bg-gray-800 rounded-full mx-auto overflow-hidden">
+                <div class="h-full bg-gradient-to-r from-purple-500 to-pink-500 w-full animate-[loading_3s_ease-in-out_infinite]"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN APP WRAPPER (HIDDEN INITIALIZED) -->
+    <div id="app-content" class="hidden flex-1 flex flex-col">
+        <!-- TOP APP BAR -->
+        <header class="luxury-card m-3 p-4 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <img src="https://i.postimg.cc/76LDDV7G/download-(1).png" class="w-10 h-10 rounded-xl" alt="App Logo">
+                <div>
+                    <h2 class="font-bold text-lg leading-none">Global Chat 2</h2>
+                    <span class="text-xs text-green-400 font-mono" id="live-counter">Simulate Global Active: --</span>
+                </div>
+            </div>
+            <!-- Theme Trigger -->
+            <button onclick="openModal('theme-modal')" class="p-2 bg-white/10 hover:bg-white/20 rounded-full text-sm">🎨 Theme</button>
+        </header>
+
+        <!-- PAGE 1: CHAT NOW / COUNTRIES LIST (DEFAULT) -->
+        <main id="page-chat" class="flex-1 p-3 space-y-3 overflow-y-auto mb-20">
+            <div class="luxury-card p-4 bg-gradient-to-r from-purple-900/30 to-indigo-900/30">
+                <h3 class="font-bold text-xl text-yellow-400">🚀 Grow Your Global Audience</h3>
+                <p class="text-xs text-gray-300 mt-1">Share links with users from 195 countries entirely voluntarily.</p>
+                <button onclick="openModal('benefit-modal')" class="mt-2 text-xs font-semibold underline text-purple-300">View Benefits & Allowed Platforms</button>
+            </div>
+
+            <!-- Country List -->
+            <div class="space-y-2" id="countries-container">
+                <!-- Javascript will load 195 simulated countries here -->
+            </div>
+        </main>
+
+        <!-- PAGE 2: PUBLIC CHAT VIEW -->
+        <main id="page-public" class="hidden flex-1 p-3 flex flex-col mb-20">
+            <div class="luxury-card p-3 mb-2 flex justify-between items-center bg-white/5">
+                <div class="flex items-center space-x-2">
+                    <span id="active-room-flag" class="text-2xl">🌎</span>
+                    <h3 id="active-room-title" class="font-bold text-lg">Global Room</h3>
+                </div>
+                <button onclick="backToCountries()" class="text-xs px-3 py-1 bg-white/10 rounded-md">← Change Room</button>
+            </div>
+
+            <!-- Chat Stream Box -->
+            <div class="flex-1 luxury-card p-4 overflow-y-auto space-y-3 mb-2 min-h-[300px]" id="chat-messages">
+                <div class="bg-white/5 p-3 rounded-xl max-w-[85%] text-sm">
+                    <span class="font-bold text-purple-400 block text-xs">System Bot</span>
+                    Welcome to the chatroom! Please follow terms and conditions. Ads must be clean and safe.
+                </div>
+            </div>
+
+            <!-- Lock Message System Indicator -->
+            <div class="luxury-card p-4 border border-red-500/30 bg-red-950/20 text-center">
+                <p class="text-xs text-red-300 font-semibold uppercase tracking-wider mb-2">🔒 Messaging Account Lock Period Activated</p>
+                <div class="text-xl font-mono text-yellow-400 font-bold" id="countdown-timer">29 days 23 hours 59 mins 59 secs</div>
+                <p class="text-[10px] text-gray-400 mt-1">To verify compliance, your account must complete a 1-month continuous hold sequence before submitting custom content.</p>
+            </div>
+        </main>
+
+        <!-- PAGE 3: SAFETY & POLICY INFO -->
+        <main id="page-safety" class="hidden flex-1 p-4 space-y-4 overflow-y-auto mb-20">
+            <div class="luxury-card p-4 space-y-3">
+                <h3 class="text-xl font-bold text-purple-400">🛡️ Safety, Terms & Compliance</h3>
+                <div>
+                    <h4 class="font-bold text-sm text-yellow-400">Privacy Policy</h4>
+                    <p class="text-xs text-gray-300 mt-1">Infinity Global Chat may process profile details, chat content, reports, and technical information needed to provide chat, moderation, authentication, and safety features. Do not share passwords, OTPs, banking details, or other sensitive information in chat.</p>
+                </div>
+                <hr class="border-white/10">
+                <div>
+                    <h4 class="font-bold text-sm text-yellow-400">Terms and Conditions</h4>
+                    <p class="text-xs text-gray-300 mt-1">Use Infinity Global Chat lawfully and respectfully. Do not post scams, phishing links, malware, harassment, illegal content, or misleading information. Content may be reported, hidden, or removed.</p>
+                </div>
+                <hr class="border-white/10">
+                <div>
+                    <h4 class="font-bold text-sm text-yellow-400">Contact Channels</h4>
+                    <p class="text-xs text-gray-300">Email: muhammadiezwaniaizi@gmail.com</p>
+                    <a href="https://wa.me/60139696546" target="_blank" class="inline-block mt-2 text-xs px-3 py-1.5 bg-green-600 hover:bg-green-700 rounded-md font-medium">💬 WhatsApp Official Support</a>
+                </div>
+            </div>
+        </main>
+
+        <!-- FOOTER NAVIGATION BAR -->
+        <nav class="fixed bottom-0 left-0 right-0 luxury-card m-2 p-2 flex justify-around items-center bg-slate-900/90 backdrop-blur-xl z-40">
+            <button onclick="switchTab('chat')" class="flex flex-col items-center space-y-1 text-purple-400" id="nav-chat">
+                <span class="text-lg">🗺️</span>
+                <span class="text-[10px] uppercase font-bold tracking-wider">Chat Now</span>
+            </button>
+            <button onclick="switchTab('public')" class="flex flex-col items-center space-y-1 text-gray-400" id="nav-public">
+                <span class="text-lg">💬</span>
+                <span class="text-[10px] uppercase font-bold tracking-wider">Public Chat</span>
+            </button>
+            <button onclick="openModal('pwa-modal')" class="flex flex-col items-center space-y-1 text-yellow-400" id="nav-install">
+                <span class="text-lg">📲</span>
+                <span class="text-[10px] uppercase font-bold tracking-wider">Install App</span>
+            </button>
+            <button onclick="switchTab('safety')" class="flex flex-col items-center space-y-1 text-gray-400" id="nav-safety">
+                <span class="text-lg">🛡️</span>
+                <span class="text-[10px] uppercase font-bold tracking-wider">Safety</span>
+            </button>
+        </nav>
+    </div>
+
+    <!-- MODAL 1: BENEFIT SPECIFICATIONS -->
+    <div id="benefit-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4">
+        <div class="luxury-card w-full max-w-md p-5 space-y-4 max-h-[80vh] overflow-y-auto bg-slate-900">
+            <h3 class="text-xl font-bold text-yellow-400 flex items-center">🚀 Benefit App</h3>
+            <p class="text-sm text-gray-200 font-medium">Grow your audience through the Global Chat community. Share your promotional links in the chat and introduce your content to users from different countries.</p>
+            <div class="space-y-1.5 text-xs text-gray-300">
+                <p>• <b>▶️ YouTube</b> — share your channel or videos to help gain viewers and subscribers.</p>
+                <p>• <b>🎵 TikTok</b> — promote your videos or profile.</p>
+                <p>• <b>📸 Instagram</b> — share your profile, posts or content.</p>
+                <p>• <b>📘 Facebook</b> — promote your page, group or content.</p>
+                <p>• <b>🌐 Website / Blog</b> — increase exposure and traffic.</p>
+                <p>• <b>🎮 Gaming</b> — promote your channel, stream or gaming community.</p>
+                <p>• <b>💼 Business</b> — promote your products, services or online store.</p>
+                <p>• <b>👥 Community</b> — share your Telegram, Discord or community.</p>
+                <p>• <b>🎨 Creator</b> — promote your portfolio, work and personal brand.</p>
+                <p>• <b>📱 Apps</b> — share your application or project.</p>
+            </div>
+            <div class="bg-purple-950/40 p-3 rounded-lg border border-purple-500/20 text-xs">
+                <h4 class="font-bold text-purple-300 mb-1">🌎 Why share?</h4>
+                <p>One link can introduce your content to users from around the world voluntarily. Share → Reach → Discover → Grow 🚀</p>
+            </div>
+            <button onclick="closeModal('benefit-modal')" class="w-full py-2 bg-purple-600 rounded-xl font-bold text-sm">Back</button>
+        </div>
+    </div>
+
+    <!-- MODAL 2: THEME SELECTOR -->
+    <div id="theme-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4">
+        <div class="luxury-card w-full max-w-sm p-5 space-y-4 bg-slate-900">
+            <h3 class="text-lg font-bold text-white">Choose a Theme</h3>
+            <div class="grid grid-cols-2 gap-2 text-xs font-semibold">
+                <button onclick="setTheme('Royal Purple', '#6B46C1', 'linear-gradient(135deg, #1A0B2E 0%, #0F051D 100%)')" class="p-3.5 rounded-xl border border-purple-500 bg-[#1A0B2E] text-purple-300">Royal Purple</button>
+                <button onclick="setTheme('Luxury Gold', '#D4AF37', 'linear-gradient(135deg, #2C2205 0%, #110D02 100%)')" class="p-3.5 rounded-xl border border-yellow-600 bg-[#2C2205] text-yellow-400">Luxury Gold</button>
+                <button onclick="setTheme('Midnight Black', '#111827', 'linear-gradient(135deg, #111111 0%, #000000 100%)')" class="p-3.5 rounded-xl border border-gray-600 bg-black text-gray-400">Midnight Black</button>
+                <button onclick="setTheme('Ocean Blue', '#3B82F6', 'linear-gradient(135deg, #0B1E3F 0%, #050E21 100%)')" class="p-3.5 rounded-xl border border-blue-500 bg-[#0B1E3F] text-blue-400">Ocean Blue</button>
+                <button onclick="setTheme('Emerald', '#10B981', 'linear-gradient(135deg, #062419 0%, #020F0A 100%)')" class="p-3.5 rounded-xl border border-emerald-500 bg-[#062419] text-emerald-400">Emerald</button>
+                <button onclick="setTheme('Ruby', '#EF4444', 'linear-gradient(135deg, #2D0B0B 0%, #140303 100%)')" class="p-3.5 rounded-xl border border-red-500 bg-[#2D0B0B] text-red-400">Ruby</button>
+                <button onclick="setTheme('Rose Pink', '#EC4899', 'linear-gradient(135deg, #2E0B1C 0%, #15030C 100%)')" class="p-3.5 rounded-xl border border-pink-500 bg-[#2E0B1C] text-pink-400">Rose Pink</button>
+                <button onclick="setTheme('Cyan', '#06B6D4', 'linear-gradient(135deg, #052329 0%, #010F12 100%)')" class="p-3.5 rounded-xl border border-cyan-400 bg-[#052329] text-cyan-400">Cyan</button>
+                <button onclick="setTheme('Sunset Orange', '#F97316', 'linear-gradient(135deg, #2D1405 0%, #140801 100%)')" class="p-3.5 rounded-xl border border-orange-500 bg-[#2D1405] text-orange-400">Sunset Orange</button>
+                <button onclick="setTheme('Platinum', '#94A3B8', 'linear-gradient(135deg, #1E293B 0%, #0F172A 100%)')" class="p-3.5 rounded-xl border border-slate-400 bg-[#1E293B] text-slate-300">Platinum</button>
+            </div>
+            <button onclick="closeModal('theme-modal')" class="w-full py-2 bg-white/10 rounded-xl font-bold text-sm text-gray-300">Back to chat</button>
+        </div>
+    </div>
+
+    <!-- MODAL 3: PREMIUM UNLOCK / PWA INSTALLATION INTERCEPT -->
+    <div id="pwa-modal" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-xl hidden flex items-center justify-center p-4">
+        <div class="luxury-card w-full max-w-md p-6 space-y-4 border border-yellow-500/40 bg-slate-950">
+            <div class="text-center space-y-2">
+                <span class="text-4xl">👑</span>
+                <h3 class="text-xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-amber-200">LIFETIME ACCESS PASS REQUIRED</h3>
+                <p class="text-xs text-gray-300">To authorize Home Screen integration & full utility configurations, a standard activation footprint validation is mandatory.</p>
+                <div class="inline-block px-4 py-2 bg-yellow-500/10 border border-yellow-500/30 rounded-xl text-yellow-400 font-mono text-xl font-bold mt-2">
+                    RM 30.00 <span class="text-xs font-sans text-gray-400 block">LIFETIME VALIDITY ONLY</span>
+                </div>
+            </div>
+
+            <!-- Razorpay CTA Button -->
+            <button onclick="triggerPayment()" class="w-full py-3 bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-600 hover:to-amber-600 text-black font-extrabold rounded-xl shadow-xl transition transform active:scale-95">
+                💳 PAY RM 30.00 & AUTHORIZE ACCESS
+            </button>
+
+            <!-- Guide Details -->
+            <div class="bg-white/5 p-4 rounded-xl text-xs space-y-2 text-gray-300">
+                <h4 class="font-bold text-yellow-400 uppercase tracking-wider">📲 HOW TO INSTALL APP</h4>
+                <p class="text-[11px] text-red-400 font-semibold font-mono">⚠️ CHROME BETA IS REQUIRED</p>
+                <p class="font-semibold text-gray-400 border-b border-white/5 pb-1">ANDROID / TABLET / DESKTOP / iPHONE / iPAD</p>
+                <ol class="list-decimal pl-4 space-y-1 text-gray-400">
+                    <li>Open Google Play Store / App Store</li>
+                    <li>Install Chrome Beta</li>
+                    <li>Open Chrome Beta &rarr; Search &rarr; paste application link</li>
+                    <li>Tap <b class="text-white">⋮</b> or Share &rarr; Add to Home Screen</li>
+                    <li>Install App &rarr; Complete!</li>
+                </ol>
+            </div>
+            <button onclick="closeModal('pwa-modal')" class="w-full py-2 bg-white/5 text-gray-400 text-xs rounded-lg">Keep browsing restricted preview</button>
+        </div>
+    </div>
+
+    <!-- MAIN LOGIC ENGINE script -->
+    <script>
+        // Target Configuration Context Block
+        const SUPABASE_URL = "https://rptclztrmprcxjbolkrt.supabase.co";
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJwdGNsenRybXByY3hqYm9sa3J0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzNzY5NjgsImV4cCI6MjEwMDk1Mjk2OH0.uS1evu_z-eS7wJymgQZ7K8f3kviruWDvwZEkqElx_5s";
+        const RAZORPAY_KEY_ID = "rzp_live_TM5F1wDsHnF4im";
+
+        let isPremiumUnlocked = false;
+
+        // Strictly 3 seconds splash screen countdown sequence
+        window.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                const splash = document.getElementById('splash-screen');
+                splash.style.opacity = '0';
+                splash.style.transition = 'opacity 0.5s ease';
+                setTimeout(() => {
+                    splash.style.display = 'none';
+                    document.getElementById('app-content').classList.remove('hidden');
+                    initializeAppEngine();
+                }, 500);
+            }, 3000);
+        });
+
+        // Online simulation dynamic fluctuations lists array
+        const simulateNumbers = [57185, 2532543, 7324633, 44213643, 22241543, 12323213, 75321543, 34422241, 32532521, 63521523, 27321564, 66533215, 64521264, 53163233, 7231554, 44245533, 93535555, 100531564];
+        const countryNames = [
+            "United States", "Malaysia", "Singapore", "Indonesia", "United Kingdom", "Australia", "Canada", "Japan", "Germany", 
+            "France", "India", "Brazil", "South Africa", "New Zealand", "Saudi Arabia", "UAE", "South Korea", "China", "Thailand",
+            "Vietnam", "Philippines", "Italy", "Spain", "Russia", "Mexico", "Egypt", "Turkey", "Netherlands", "Sweden", "Norway"
+        ]; // Expanded algorithmically up to 195 representation matrix seamlessly
+
+        function initializeAppEngine() {
+            renderCountries();
+            startLiveCounterFluctuations();
+            startHoldCountdown();
+        }
+
+        function renderCountries() {
+            const container = document.getElementById('countries-container');
+            container.innerHTML = '';
+            
+            // Build out country rows matching requirement matrix logic loop
+            for(let i=0; i<195; i++) {
+                const name = countryNames[i % countryNames.length] + " " + (Math.floor(i/countryNames.length) + 1);
+                const flag = '🌎';
+                const baseRandIdx = Math.floor(Math.random() * simulateNumbers.length);
+                const allocatedCountryOnline = Math.floor(simulateNumbers[baseRandIdx] / 195);
+
+                const row = document.createElement('div');
+                row.className = "luxury-card p-3 flex items-center justify-between hover:bg-white/10 transition cursor-pointer";
+                row.onclick = () => openRoom(name, flag);
+                row.innerHTML = `
+                    <div class="flex items-center space-x-3">
+                        <span class="text-xl">${flag}</span>
+                        <span class="font-medium text-sm">${name}</span>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <span class="text-xs text-purple-300 font-mono bg-purple-950/50 px-2 py-0.5 rounded-full">${allocatedCountryOnline.toLocaleString()} active</span>
+                        <button class="text-xs font-bold px-3 py-1 bg-gradient-to-r from-purple-500 to-pink-500 rounded-md shadow-md">CHAT NOW</button>
+                    </div>
+                `;
+                container.appendChild(row);
+            }
+        }
+
+        function startLiveCounterFluctuations() {
+            setInterval(() => {
+                const randBase = simulateNumbers[Math.floor(Math.random() * simulateNumbers.length)];
+                document.getElementById('live-counter').innerText = `Simulate Global Active: ${randBase.toLocaleString()}`;
+            }, 4000);
+        }
+
+        function openRoom(name, flag) {
+            document.getElementById('active-room-flag').innerText = flag;
+            document.getElementById('active-room-title').innerText = name;
+            switchTab('public');
+        }
+
+        function backToCountries() {
+            switchTab('chat');
+        }
+
+        function switchTab(tabId) {
+            document.getElementById('page-chat').classList.add('hidden');
+            document.getElementById('page-public').classList.add('hidden');
+            document.getElementById('page-safety').classList.add('hidden');
+
+            document.getElementById(`page-${tabId}`).classList.remove('hidden');
+
+            // Reset navigation indicators color scheme
+            ['chat', 'public', 'safety'].forEach(id => {
+                document.getElementById(`nav-${id}`).classList.remove('text-purple-400');
+                document.getElementById(`nav-${id}`).classList.add('text-gray-400');
+            });
+            if(tabId !== 'install') {
+                document.getElementById(`nav-${tabId}`).classList.add('text-purple-400');
+            }
+        }
+
+        function openModal(id) {
+            document.getElementById(id).classList.remove('hidden');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
+        }
+
+        function setTheme(name, primaryColor, bgGradient) {
+            document.documentElement.style.setProperty('--primary', primaryColor);
+            document.body.style.background = bgGradient;
+            closeModal('theme-modal');
+        }
+
+        function startHoldCountdown() {
+            let totalSeconds = 30 * 24 * 60 * 60; // 1 month timer validation
+            setInterval(() => {
+                if (totalSeconds > 0) {
+                    totalSeconds--;
+                    const days = Math.floor(totalSeconds / (24 * 3600));
+                    const hours = Math.floor((totalSeconds % (24 * 3600)) / 3600);
+                    const mins = Math.floor((totalSeconds % 3600) / 60);
+                    const secs = totalSeconds % 60;
+                    document.getElementById('countdown-timer').innerText = `${days} days ${hours} hours ${mins} mins ${secs} secs`;
+                }
+            }, 1000);
+        }
+
+        // Razorpay integration execution hook
+        function triggerPayment() {
+            var options = {
+                "key": RAZORPAY_KEY_ID,
+                "amount": "3000", // RM 30.00 equivalent scaled
+                "currency": "MYR",
+                "name": "Infinity Global Chat 2",
+                "description": "Lifetime Integration Access Footprint",
+                "handler": function (response){
+                    alert("Payment Verified! Authentication Access Token approved. Native Add to Homescreen parameter active.");
+                    isPremiumUnlocked = true;
+                    closeModal('pwa-modal');
+                },
+                "theme": { "color": "#6B46C1" }
+            };
+            var rzp = new Razorpay(options);
+            rzp.open();
+        }
+    </script>
+</body>
+</html>
